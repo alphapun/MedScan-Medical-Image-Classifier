@@ -198,7 +198,7 @@ DISEASE_CONFIG = {
     "🔬 Retinal OCT (Eye)": {
         "description": "Optical Coherence Tomography — retinal layer analysis",
         "model_arch": "convnext",
-        "model_path": "/Users/ebbb/Desktop/UTS/S3/DL/Project/convnext_best.pth",
+        "model_path": "./convnext_best.pth",
         "num_classes": 4,
         "classes": ["CNV", "DME", "DRUSEN", "NORMAL"],
         "class_info": {
@@ -212,7 +212,7 @@ DISEASE_CONFIG = {
     "🧠 Brain Tumour (MRI)": {
         "description": "MRI-based brain tumour classification",
         "model_arch": "efficientnet_b0",
-        "model_path": "/Users/ebbb/Desktop/UTS/S3/DL/Project/brain_best.pt",
+        "model_path": "./brain_best.pt",
         "num_classes": 4,
         "classes": ["glioma", "meningioma", "notumor", "pituitary"],
         "class_info": {
@@ -226,7 +226,7 @@ DISEASE_CONFIG = {
     "🫁 Lung Pathology (X-Ray)": {
         "description": "Chest X-Ray multi-pathology classification (NIH ChestX-ray14)",
         "model_arch": "convnext",
-        "model_path": "/Users/ebbb/Desktop/UTS/S3/DL/Project/chest_best.pt",
+        "model_path": "./chest_best.pt",
         "num_classes": 15,
         "classes": [
             "Atelectasis", "Cardiomegaly", "Consolidation", "Edema", "Effusion",
@@ -510,8 +510,9 @@ with st.sidebar:
 st.markdown(f'<div style="margin-bottom:1.5rem"><h1 style="font-size:1.6rem;font-weight:700;color:#f0efed;margin:0;">{selected_disease}</h1><p style="color:#797876;font-size:0.9rem;margin-top:0.25rem;">{cfg["description"]} — Upload an image to classify</p></div>', unsafe_allow_html=True)
 
 vision_agent = VisionAgent(selected_disease)
-# Use the hardcoded API key as in the previous version
-report_agent = ReportAgent("AIzaSyCqPC8SI3Cg5ZzwIFGXy4WPZoQTTPqvHS8")
+# Fetch API key from environment variable to secure credentials for GitHub
+api_key = os.environ.get("GEMINI_API_KEY", "YOUR_GEMINI_API_KEY_HERE")
+report_agent = ReportAgent(api_key)
 
 if "uploaded_image" not in st.session_state: st.session_state.uploaded_image = None
 if "uploaded_filename" not in st.session_state: st.session_state.uploaded_filename = None
