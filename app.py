@@ -288,7 +288,8 @@ class VisionAgent:
         self.model = self._load_model()
 
     def _load_model(self):
-        arch, num_classes, model_path = self.arch, self.cfg["num_classes"], self.path
+        # Resolve weights next to app.py so the app works from any launch folder
+        arch, num_classes, model_path = self.arch, self.cfg["num_classes"], os.path.join(os.path.dirname(os.path.abspath(__file__)), self.path)
         if not os.path.exists(model_path): return None
         try:
             if arch == "convnext": model = timm.create_model("convnext_base.fb_in22k_ft_in1k", pretrained=False, num_classes=num_classes)
