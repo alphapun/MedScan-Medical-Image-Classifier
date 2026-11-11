@@ -10,12 +10,14 @@ The repository contains both the research phase (model training and evaluation) 
 ### 1. Web Application (`app.py`)
 An interactive Streamlit frontend built around an agentic diagnostic loop:
 * **Vision Agent**: Runs local inference on medical images using fine-tuned architectures (ConvNeXt, ViT, EfficientNet) and generates Grad-CAM explainability heatmaps to highlight regions of interest.
-* **Diagnostic Agent**: Gemini 2.5 Flash acts as the planner. It sees the scan and decides which tools to call and when to stop:
-  * `classify_scan(domain)` runs the primary model. The agent also checks the image matches the selected modality and switches domain if not.
+* **Diagnostic Agent**: Starts automatically on upload. Gemini 2.5 Flash acts as the planner. It sees the scan and decides which tools to call and when to stop; every result on the page comes from what it did:
+  * `verify_scan(detected_type, image_quality_ok, reason)` must be called first. The agent decides from the image whether it is an OCT, brain MRI or chest X-ray (the sidebar dropdown is only the expected type) or rejects it. The code refuses to run any model on a scan that has not been verified as that domain.
+  * `classify_scan(domain)` runs the primary model for the verified domain.
+  * `generate_heatmap(domain, target_class)` makes a Grad-CAM heatmap for the classes the agent chooses to explain (e.g. both of the top two when they are close).
   * `second_opinion(model)` re-classifies OCT scans with the independently trained ViT-B/16, DeiT3-B or EfficientNetV2-S models.
   * `class_reliability(domain)` returns each model's per-class test recall, so the agent knows how far to trust a prediction (e.g. DRUSEN is the weakest class).
   * A separate Gemini call then **self-checks** the report against the tool results, and the agent revises it if needed.
-  * **Guardrails in code** (not left to the LLM): a cap of 8 tool calls, no report unless a classifier ran, a forced warning on model disagreement or confidence below 80%, and an always-present disclaimer.
+  * **Guardrails in code** (not left to the LLM): a cap of 10 tool calls, verification before any model runs, no report or PDF unless a classifier ran, a forced warning on model disagreement or confidence below 80%, and an always-present disclaimer.
   * The pipeline log shows the tools the agent actually chose, so an easy scan takes fewer steps than a borderline one.
 * **Document Agent**: Compiles the report and heatmap into a downloadable PDF.
 
