@@ -48,10 +48,11 @@ A comprehensive Jupyter Notebook detailing the research, training, and evaluatio
    ```
 
 3. **Set your API Key:**
-   The Report Agent requires a Gemini API key. Set it as an environment variable:
+   The Diagnostic Agent requires a Gemini API key. Create a `.env` file next to `app.py` (it is git-ignored, so the key is never pushed):
    ```bash
-   export GEMINI_API_KEY="your_api_key_here"
+   GEMINI_API_KEY=your_api_key_here
    ```
+   A `GEMINI_API_KEY` exported in your shell takes precedence over `.env`.
 
 4. **Run the application:**
    ```bash

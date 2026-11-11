@@ -633,8 +633,14 @@ with st.sidebar:
 # ─────────────────────────────────────────────────────────────────────────────
 st.markdown('<div style="margin-bottom:1.5rem"><h1 style="font-size:1.6rem;font-weight:700;color:#f0efed;margin:0;">Diagnostic Agent</h1><p style="color:#797876;font-size:0.9rem;margin-top:0.25rem;">Upload a scan — the agent verifies it first, then decides which models and checks to run</p></div>', unsafe_allow_html=True)
 
-# Fetch API key from environment variable to secure credentials for GitHub
-api_key = os.environ.get("GEMINI_API_KEY", "")
+# Load the API key from the local .env file (git-ignored); a key exported in the shell takes precedence
+ENV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+env_file = {}
+if os.path.exists(ENV_PATH):  # re-read on every rerun, so a key added later works after a page reload
+    for line in open(ENV_PATH):
+        key, sep, value = line.strip().partition("=")
+        if sep and not key.startswith("#"): env_file[key.strip()] = value.strip().strip("'\"")
+api_key = os.environ.get("GEMINI_API_KEY") or env_file.get("GEMINI_API_KEY", "")
 
 if "uploaded_image" not in st.session_state: st.session_state.uploaded_image = None
 if "uploaded_filename" not in st.session_state: st.session_state.uploaded_filename = None
@@ -672,7 +678,7 @@ else:
         pipeline_log = st.empty()
 
         if not api_key:
-            st.error("Set the GEMINI_API_KEY environment variable to run the Diagnostic Agent.")
+            st.error(f"No Gemini API key found. Add it to {ENV_PATH} as GEMINI_API_KEY=your_key, then reload the page.")
         else:
             if st.session_state.get("agent") is None:
                 log_pipeline_step(pipeline_log, [{"name": "Diagnostic Agent", "status": "Thinking...", "detail": "Verifying the scan, then choosing which tools to call", "color": "#e8af34"}])
