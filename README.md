@@ -8,10 +8,16 @@ The repository contains both the research phase (model training and evaluation) 
 ## Project Structure
 
 ### 1. Web Application (`app.py`)
-An interactive Streamlit frontend that orchestrates a multi-agent diagnostic pipeline:
+An interactive Streamlit frontend built around an agentic diagnostic loop:
 * **Vision Agent**: Runs local inference on medical images using fine-tuned architectures (ConvNeXt, ViT, EfficientNet) and generates Grad-CAM explainability heatmaps to highlight regions of interest.
-* **Report Agent**: Utilizes Google's Gemini 2.5 Flash LLM to generate structured, professional medical reports based on the Vision Agent's findings and confidence levels.
-* **Document Agent**: Compiles the clinical findings and heatmaps into a downloadable PDF report.
+* **Diagnostic Agent**: Gemini 2.5 Flash acts as the planner. It sees the scan and decides which tools to call and when to stop:
+  * `classify_scan(domain)` runs the primary model. The agent also checks the image matches the selected modality and switches domain if not.
+  * `second_opinion(model)` re-classifies OCT scans with the independently trained ViT-B/16, DeiT3-B or EfficientNetV2-S models.
+  * `class_reliability(domain)` returns each model's per-class test recall, so the agent knows how far to trust a prediction (e.g. DRUSEN is the weakest class).
+  * A separate Gemini call then **self-checks** the report against the tool results, and the agent revises it if needed.
+  * **Guardrails in code** (not left to the LLM): a cap of 8 tool calls, no report unless a classifier ran, a forced warning on model disagreement or confidence below 80%, and an always-present disclaimer.
+  * The pipeline log shows the tools the agent actually chose, so an easy scan takes fewer steps than a borderline one.
+* **Document Agent**: Compiles the report and heatmap into a downloadable PDF.
 
 **Supported Domains:**
 * **Retinal OCT (Eye):** CNV, DME, Drusen, Normal
@@ -57,6 +63,7 @@ To run the application locally, please download the model weights and place them
 * `convnext_best.pth` (Retinal OCT) - [[Link to download](https://huggingface.co/alphapun/convnext_best)]
 * `brain_best.pt` (Brain MRI) - [[Link to download](https://huggingface.co/Jaubert-Wang/MRI_Brain_Cancer_Classification_Deeplearning)]
 * `chest_best.pt` (Chest X-Ray) - [[Link to download](https://huggingface.co/Beiry/medscan-chest-xray14)]
+* `vit_best.pth`, `deit_best.pth`, `cnn_best.pth` (optional OCT second-opinion models, trained in `Experiments.ipynb`). Without them the agent's `second_opinion` tool reports that the weights are unavailable.
 
 ---
 **Disclaimer:** *This tool is for research and educational purposes only. It is not a medical device. Clinical decisions must be made by qualified healthcare professionals.*
