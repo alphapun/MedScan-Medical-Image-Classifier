@@ -453,7 +453,8 @@ Report date: {datetime.now().strftime("%B %d, %Y")}
 Write the final report with these sections: 1. STUDY DETAILS, 2. FINDINGS, 3. MODEL EVIDENCE (every model run and its result), 4. IMPRESSION, 5. CONFIDENCE (High/Moderate/Low with the reason), 6. RECOMMENDATIONS. Tone: professional, objective and cautious."""
     check = None
     try:
-        client = genai.Client(api_key=api_key)
+        # Function calling is only available on the v1beta API; this SDK version defaults to v1
+        client = genai.Client(api_key=api_key, http_options=types.HttpOptions(api_version="v1beta"))
         chat = client.chats.create(model="gemini-2.5-flash", config=types.GenerateContentConfig(
             tools=[verify_scan, classify_scan, second_opinion, class_reliability, generate_heatmap],
             system_instruction=system, safety_settings=SAFETY_SETTINGS,
