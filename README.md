@@ -44,7 +44,7 @@ A comprehensive Jupyter Notebook detailing the research, training, and evaluatio
 2. **Install dependencies:**
    Ensure you have Python 3.8+ installed.
    ```bash
-   pip install streamlit torch torchvision timm pillow numpy plotly google-generativeai fpdf grad-cam opencv-python
+   pip install streamlit torch torchvision timm pillow numpy plotly google-genai fpdf2 grad-cam opencv-python
    ```
 
 3. **Set your API Key:**

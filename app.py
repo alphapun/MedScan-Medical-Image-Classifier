@@ -10,7 +10,8 @@ import os
 import re
 import json
 from html import escape
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from fpdf import FPDF, XPos, YPos
 import tempfile
 from datetime import datetime
@@ -452,21 +453,23 @@ Report date: {datetime.now().strftime("%B %d, %Y")}
 Write the final report with these sections: 1. STUDY DETAILS, 2. FINDINGS, 3. MODEL EVIDENCE (every model run and its result), 4. IMPRESSION, 5. CONFIDENCE (High/Moderate/Low with the reason), 6. RECOMMENDATIONS. Tone: professional, objective and cautious."""
     check = None
     try:
-        genai.configure(api_key=api_key)
-        agent = genai.GenerativeModel("gemini-2.5-flash", tools=[verify_scan, classify_scan, second_opinion, class_reliability, generate_heatmap],
-                                      system_instruction=system, safety_settings=SAFETY_SETTINGS)
-        chat = agent.start_chat(enable_automatic_function_calling=True)
-        report = chat.send_message([image, "Verify and triage this scan, then write the report."]).text
+        client = genai.Client(api_key=api_key)
+        chat = client.chats.create(model="gemini-2.5-flash", config=types.GenerateContentConfig(
+            tools=[verify_scan, classify_scan, second_opinion, class_reliability, generate_heatmap],
+            system_instruction=system, safety_settings=SAFETY_SETTINGS,
+            # Hard backstop above our own budget, which lets the agent finish its report gracefully first
+            automatic_function_calling=types.AutomaticFunctionCallingConfig(maximum_remote_calls=MAX_TOOL_CALLS + 2)))
+        report = chat.send_message([image, "Verify and triage this scan, then write the report."]).text or "Error: the agent returned no text."
         if not any("prediction" in t["result"] for t in AGENT_STATE["trace"]):
             # Nothing was classified, so there is no report to check: return the agent's explanation as-is
             return {"report": report, "trace": AGENT_STATE["trace"], "check": None, "heatmaps": [], "accepted": False}
         # Self-check: an independent call compares the report with what the tools actually returned
-        check = genai.GenerativeModel("gemini-2.5-flash", safety_settings=SAFETY_SETTINGS).generate_content(
+        check = (client.models.generate_content(model="gemini-2.5-flash", config=types.GenerateContentConfig(safety_settings=SAFETY_SETTINGS), contents=
             f"Tool results (ground truth):\n{json.dumps(AGENT_STATE['trace'], indent=1)}\n\nReport:\n{report}\n\n"
             "List every claim in the report that the tool results do not support, or any model disagreement the report hides. "
-            "If there are none, reply exactly OK.").text.strip()
+            "If there are none, reply exactly OK.").text or "Self-check returned no answer.").strip()
         if check != "OK":
-            report = chat.send_message(f"A reviewer found these problems. Rewrite the full report fixing them:\n{check}").text
+            report = chat.send_message(f"A reviewer found these problems. Rewrite the full report fixing them:\n{check}").text or report
         report = apply_guardrails(report, AGENT_STATE["trace"])
     except Exception as e:
         report = f"Error running diagnostic agent: {e}"
